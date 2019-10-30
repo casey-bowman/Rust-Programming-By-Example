@@ -1,7 +1,11 @@
 [package]
 name = "tetris"
 version = "0.0.1"
+edition = "2018"
 
 [dependencies]
 sdl2 = "0.30.0"
+
+[features]
+default = ["sdl2/image"]
 
