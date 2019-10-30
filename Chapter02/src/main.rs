@@ -1,5 +1,5 @@
-extern crate sdl2;
 
+use sdl2::image::{LoadTexture, INIT_PNG, INIT_JPG};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -10,6 +10,10 @@ use sdl2::video::{Window, WindowContext};
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
+use std::fs::File;
+use std::io::{self, Write, Read};
+
+
 // To make things easier to read, we'll create a constant which will be the texture's size.
 const TEXTURE_SIZE: u32 = 32;
 
@@ -17,6 +21,48 @@ const TEXTURE_SIZE: u32 = 32;
 enum TextureColor {
     Green,
     Blue,
+}
+
+fn write_into_file(content: &str, file_name: &str) -> io::Result<()> {
+    let mut f = File::create(file_name)?;
+    f.write_all(content.as_bytes())
+}
+
+fn read_from_file(file_name: &str) -> io::Result<String> {
+    let mut f = File::open(file_name)?;
+    let mut content = String::new();
+    f.read_to_string(&mut content)?;
+    Ok(content)
+}
+
+fn slice_to_string(slice: &[u32]) -> String {
+    slice.iter().map(|highscore| highscore.to_string()).collect::<Vec<String>>().join(" ")
+}
+
+fn save_highscores_and_lines(highscores: &[u32], number_of_lines: &[u32]) -> bool {
+    let s_highscores = slice_to_string(highscores);
+    let s_number_of_lines = slice_to_string(number_of_lines);
+    let content = format!("{}\n{}\n", s_highscores, s_number_of_lines);
+    write_into_file(&content, "scores.txt").is_ok()
+}
+
+fn line_to_slice(line: &str) -> Vec<u32> {
+    line.split(" ").filter_map(|nb| nb.parse::<u32>().ok()).collect()
+}
+
+fn load_highscores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
+    if let Ok(content) = read_from_file("scores.txt") {
+        let mut lines = content.splitn(2, "\n").map(|line|
+            line_to_slice(line)).collect::<Vec<_>>();
+        if lines.len() == 2 {
+            let (number_of_lines, highscores) = (lines.pop().unwrap(), lines.pop().unwrap());
+            Some((highscores, number_of_lines))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
 
 fn create_texture_rect<'a>(canvas: &mut Canvas<Window>,
@@ -45,6 +91,8 @@ fn main() {
     let sdl_context = sdl2::init().expect("SDL initialization failed");
     let video_subsystem = sdl_context.video().expect("Couldn't get SDL video subsystem");
 
+    sdl2::image::init(INIT_JPG | INIT_PNG).expect("Couldn't initialize image context");
+
     // Parameters are: title, width, height
     let window = video_subsystem.window("Tetris", 800, 600)
                                 .position_centered() // to put it in the middle of the screen
@@ -58,6 +106,8 @@ fn main() {
                            .expect("Couldn't get window's canvas");
 
     let texture_creator: TextureCreator<_> = canvas.texture_creator();
+
+    let image_texture = texture_creator.load_texture("assets/OceanBeach.jpg").expect("Couldn't load image");
 
     // We create a texture with a 32x32 size.
     let green_square = create_texture_rect(&mut canvas,
@@ -105,6 +155,8 @@ let timer = SystemTime::now();
         } else {
             &blue_square
         };
+
+        canvas.copy(&image_texture, None, None).expect("Render failed");
         // Copy our texture into the window.
         canvas.copy(square_texture,
                     None,
@@ -112,6 +164,8 @@ let timer = SystemTime::now();
                     Rect::new(0, 0, TEXTURE_SIZE, TEXTURE_SIZE))
               .expect("Couldn't copy texture into window");
         // We update window's display.
+
+
         canvas.present();
 
         // We sleep enough to get ~60 fps. If we don't call this, the program will take
