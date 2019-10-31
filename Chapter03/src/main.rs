@@ -1,6 +1,3 @@
-extern crate rand;
-extern crate sdl2;
-
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -14,13 +11,17 @@ use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
 const TETRIS_HEIGHT: usize = 40;
+
+
 const HIGHSCORE_FILE: &'static str = "scores.txt";
 const LEVEL_TIMES: [u32; 10] = [1000, 850, 700, 600, 500, 400, 300, 250, 221, 190];
 const LEVEL_LINES: [u32; 10] = [20,   40,  60,  80,  100, 120, 140, 160, 180, 200];
 const NB_HIGHSCORES: usize = 5;
 
+
 type Piece = Vec<Vec<u8>>;
 type States = Vec<Piece>;
+
 
 trait TetriminoGenerator {
     fn new() -> Tetrimino;
@@ -47,7 +48,7 @@ impl TetriminoGenerator for TetriminoI {
 }
 
 struct TetriminoJ;
-
+// actually is an 'L'
 impl TetriminoGenerator for TetriminoJ {
     fn new() -> Tetrimino {
         Tetrimino {
@@ -75,7 +76,7 @@ impl TetriminoGenerator for TetriminoJ {
 }
 
 struct TetriminoL;
-
+// actually is a 'J'
 impl TetriminoGenerator for TetriminoL {
     fn new() -> Tetrimino {
         Tetrimino {
@@ -194,6 +195,7 @@ struct Tetrimino {
 }
 
 impl Tetrimino {
+
     fn rotate(&mut self, game_map: &[Vec<u8>]) {
         let mut tmp_state = self.current_state + 1;
         if tmp_state as usize >= self.states.len() {
@@ -251,6 +253,7 @@ struct Tetris {
 }
 
 impl Tetris {
+
     fn new() -> Tetris {
         let mut game_map = Vec::new();
         for _ in 0..16 {
@@ -455,12 +458,16 @@ fn update_vec(v: &mut Vec<u32>, value: u32) -> bool {
         v.push(value);
         true
     } else {
-        for entry in v.iter_mut() {
-            if value > *entry {
-                *entry = value;
-                return true;
+        let min_highscore = *v.iter().min().unwrap_or(&0);
+        if value > min_highscore {
+            for entry in v.iter_mut() {
+                if *entry == min_highscore {
+                    *entry = value;
+                    return true;
+                }
             }
         }
+
         false
     }
 }
@@ -486,6 +493,7 @@ fn print_game_information(tetris: &Tetris) {
              if new_highest_lines_sent { " [NEW HIGHSCORE]"} else { "" });
     println!("Current level:   {}", tetris.current_level);
 }
+
 
 fn is_time_over(tetris: &Tetris, timer: &SystemTime) -> bool {
     match timer.elapsed() {
